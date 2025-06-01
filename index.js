@@ -76,6 +76,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "bhenchod",
     "behnchod",
     "chutiya",
+    "chutiye",
     "bsdk",
     "bhosdike",
     "madarchod",
@@ -84,7 +85,9 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "gand mara",
     "gand marao",
     "lodu",
-    "lund"
+    "lund",
+    "chut",
+    "randi"
   ]
   if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
@@ -103,7 +106,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       console.log(`AI Response: ${replyText}`);
     
       await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message });
-      
+
     } catch (err) {
       console.error('Error generating AI response:', err);
       await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, I couldn't process your request. Please try again later.` }, { quoted: message });
