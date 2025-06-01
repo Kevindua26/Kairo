@@ -1,0 +1,17 @@
+{
+  "name": "kairochan---whatsappweb-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kevin",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/genai": "^1.3.0",
+    "baileys": "^6.7.16",
+    "express": "^5.1.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
