@@ -29,7 +29,7 @@ Kairo is a WebSocket-based WhatsApp Chat bot built using [Baileys](https://githu
 ```bash
 git clone https://github.com/Kevindua26/Kairo.git
 
-cd kairo-bot
+cd Kairo
 ```
 
 2. **Install dependencies:**
