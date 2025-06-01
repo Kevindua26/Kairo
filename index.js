@@ -6,7 +6,9 @@ const app = express();
 const path = require('path');
 const makeWASocket = require('baileys').default;
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyDD4Z-22Yi49yh9bdoQvAwHyqNE09CjHS8" });
+// importing api key from GeminiAPI.js
+const apiKey = require('./GeminiAPI').apiKey;
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 async function resetConnection() {
   const authPath = path.join(__dirname, 'auth_info_baileys');
@@ -99,7 +101,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     let replyText = response.text;
     console.log(`AI Response: ${replyText}`);
 
-    await sock.sendMessage(remoteJid, { text: `${replyText}` });
+    await sock.sendMessage(remoteJid, { text: `${replyText}`, quoted: message });
 
     return;
   }
@@ -132,6 +134,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       console.log('Invalid spam count.');
       await sock.sendMessage(remoteJid, { text: `Sorry, I cann't spam it more than 20 😔` });
     }
+
     return;
   }
 
@@ -149,14 +152,13 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
 
   // React to specific messages
   const reactOnMessages = [
-    'Kairo', 'kairo', 'KAIRO',
     'Thanks Kairo', 'Thanks kairo', 'thanks kairo', 'thanks Kairo'
   ];
   if (reactOnMessages.includes(text)) {
     await react('❤️', remoteJid, sock, message);
   }
 
-
+  
 
   console.log([remoteJid, pushName, text]);
 }
