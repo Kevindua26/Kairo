@@ -84,55 +84,59 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "gand mara",
     "gand marao",
     "lodu",
-    "lund",
-
+    "lund"
   ]
   if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
-  // /Kairo <your message>
+  // /ask <your message>
   const genAICommand = text.match(/^\/ask\s+(.+)/i);
   if (genAICommand) {
+    const kairoprompt = `Consider you as Kairo, a helpful AI assistant. Respond to the user's query in a friendly and informative manner. The user will ask you questions or give you commands, and you should respond accordingly. If user asks for help, tell him to use /help command for Kairo's menu. If user 'ask who are you' then reply with the name 'Kairo' and tell him that you are a helpful AI assistant, designed by Kevin. Now the user will ask you from next line.`;
     const commandText = genAICommand[1]; // This will contain the text after "Kairo "
 
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: `"${commandText}"`,
+      contents: `"${kairoprompt}\n\n${commandText}"`,
     });
     let replyText = response.text;
     console.log(`AI Response: ${replyText}`);
 
-    await sock.sendMessage(remoteJid, { text: `${replyText}`, quoted: message });
+    await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message });
 
     return;
   }
 
   // /help
   if (text === '/help') {
-    await sock.sendMessage(remoteJid, { 
-      text: `Hello ${pushName}, I'm Kairo! 🤖\n
-        Here are the commands you can use:\n
-        1. */help* - Show this help message\n
-        2. */ask <your message>* - Generate a response using AI\n
-        3. *Kairo spam "message" <number>* - Spam a message a specified number of times (up to 20)\n
-        4. *Kairo* - Reply with a greeting\n` 
-    });
+    await sock.sendMessage(
+      remoteJid, 
+      { 
+        text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖*/help* - Show this help message\n2. 🤖*/ask <your message>* - Generate a response using AI\n3. 📤*Kairo spam "message" <number>* - Spam a message a specified number of times (up to 20)\n4. 👋*Kairo* - Reply with a greeting\n` 
+      },
+      { 
+        quoted: message 
+      }
+    );
 
     return;
   }
 
   // Kairo spam "message" <number>
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   const spamMatch = text.match(/^Kairo spam "(.+)" (\d+)$/i);
   if (spamMatch) {
     const spamMessage = spamMatch[1]; // Extract the message inside quotes
     const spamCount = parseInt(spamMatch[2], 10); // Extract the number of times to spam
 
     if (spamCount > 0 && spamCount <= 20) {
+      await react('🙇🏼‍♂️', remoteJid, sock, message);
       for (let i = 0; i < spamCount; i++) {
         await sock.sendMessage(remoteJid, { text: spamMessage });
+        await sleep(500); // Add 500ms delay after each message
       }
     } else {
       console.log('Invalid spam count.');
-      await sock.sendMessage(remoteJid, { text: `Sorry, I cann't spam it more than 20 😔` });
+      await sock.sendMessage(remoteJid, { text: `Sorry, I cann't spam it more than 20 😔` }, { quoted: message });
     }
 
     return;
@@ -141,22 +145,22 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   // Kairo
   if (text === 'Kairo') {
     // Example: Reply to the message
-    await react('❤️', remoteJid, sock, message);
-    await sock.sendMessage(remoteJid, { text: `Hi 👋🏻, I'm here for you ${pushName}! 📋 /help to show menu` });
+    // await react('❤️', remoteJid, sock, message);
+    await sock.sendMessage(remoteJid, { text: `Hi 👋🏻, I'm here for you ${pushName}! 📋 /help to show menu` }, { quoted: message });
     return;
   }
-  if (/kairo/i.test(text)) {
+  if (/thanks kairo/i.test(text)) {
     await react('❤️', remoteJid, sock, message);
     return;
   }
 
   // React to specific messages
-  const reactOnMessages = [
-    'Thanks Kairo', 'Thanks kairo', 'thanks kairo', 'thanks Kairo'
-  ];
-  if (reactOnMessages.includes(text)) {
-    await react('❤️', remoteJid, sock, message);
-  }
+  // const reactOnMessages = [
+  //   'Thanks Kairo', 'Thanks kairo', 'thanks kairo', 'thanks Kairo'
+  // ];
+  // if (reactOnMessages.includes(text)) {
+  //   await react('❤️', remoteJid, sock, message);
+  // }
 
   
 
@@ -169,7 +173,7 @@ async function banWordsAlert(banWords, text, remoteJid, sock, message) {
   if (regex.test(text)) {
     // Reply to the message
     await react('🖕', remoteJid, sock, message);
-    await sock.sendMessage(remoteJid, { text: `⚠️Warning⚠️ \n${message.pushName}, you aren't allowed to use this word.`, quoted: message });
+    await sock.sendMessage(remoteJid, { text: `⚠️Warning⚠️ \n${message.pushName}, you aren't allowed to use this word.`}, { quoted: message });
     
     return true;
   }
