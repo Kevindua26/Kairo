@@ -91,18 +91,23 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   // /ask <your message>
   const genAICommand = text.match(/^\/ask\s+(.+)/i);
   if (genAICommand) {
-    const kairoprompt = `Consider you as Kairo, a helpful AI assistant. Respond to the user's query in a friendly and informative manner. The user will ask you questions or give you commands, and you should respond accordingly. If user asks for help, tell him to use /help command for Kairo's menu. If user 'ask who are you' then reply with the name 'Kairo' and tell him that you are a helpful AI assistant, designed by Kevin. Now the user: ${pushName}, will ask you from next line.`;
+    const kairoPrompt = `Consider you as Kairo, a helpful AI assistant. Respond to the user's query in a friendly and informative manner. The user will ask you questions or give you commands, and you should respond accordingly. If user asks for help, tell him to use /help command for Kairo's menu. If user 'ask who are you' then reply with the name 'Kairo' and tell him that you are a helpful AI assistant, designed by Kevin. Now the user: ${pushName}, will ask you from next line.`;
     const commandText = genAICommand[1]; // This will contain the text after "Kairo "
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: `"${kairoprompt}\n\n${commandText}"`,
-    });
-    let replyText = response.text;
-    console.log(`AI Response: ${replyText}`);
-
-    await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message });
-
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: `"${kairoPrompt}\n\n${commandText}"`,
+      });
+      let replyText = response.text;
+      console.log(`AI Response: ${replyText}`);
+    
+      await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message });
+      
+    } catch (err) {
+      console.error('Error generating AI response:', err);
+      await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, I couldn't process your request. Please try again later.` }, { quoted: message });
+    }
     return;
   }
 
