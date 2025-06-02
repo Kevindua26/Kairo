@@ -128,11 +128,11 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       let replyText = response.text;
       console.log(`AI Response: ${replyText}`);
     
-      await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message });
+      await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message }, { disappearingMessagesInChat: true });
 
     } catch (err) {
       console.error('Error generating AI response: ', err);
-      await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, \nServer is busy right now.` }, { quoted: message });
+      await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, \nServer is busy right now.` }, { quoted: message }, { disappearingMessagesInChat: true });
     }
     return;
   }
@@ -141,12 +141,9 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   if (text === '/help') {
     await sock.sendMessage(
       remoteJid, 
-      { 
-        text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖*/help* - Show this help message\n2. 🤖*/ask <your message>* - Generate a response using AI\n3. 📤*Kairo spam "message" <number>* - Spam a message a specified number of times (up to 20)\n4. 👋*Kairo* - Reply with a greeting\n` 
-      },
-      { 
-        quoted: message 
-      }
+      { text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖*/help* - Show this help message\n2. 🤖*/ask <your message>* - Generate a response using AI\n3. 📤*Kairo spam "message" <number>* - Spam a message a specified number of times (up to 20)\n4. 👋*Kairo* - Reply with a greeting\n` },
+      { quoted: message },
+      { disappearingMessagesInChat: true } // Enable disappearing messages in chat
     );
 
     return;
@@ -184,10 +181,6 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     );
     return;
   }
-  if (/thanks kairo/i.test(text)) {
-    await react('❤️', remoteJid, sock, message);
-    return;
-  }
 
   // React to specific messages
   // const reactOnMessages = [
@@ -209,9 +202,6 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   ];
   if(await appreciationWordReact(appreciatingWords, text, remoteJid, sock, message)) return;
 
-  
-
-  // console.log([remoteJid, pushName, text]);
 }
 
 async function banWordsAlert(banWords, text, remoteJid, sock, message) {
@@ -220,7 +210,12 @@ async function banWordsAlert(banWords, text, remoteJid, sock, message) {
   if (regex.test(text)) {
     // Reply to the message
     await react('🚫', remoteJid, sock, message);
-    await sock.sendMessage(remoteJid, { text: `⚠️ Warning, \n${message.pushName} you aren't allowed to use this word.`}, { quoted: message });
+    await sock.sendMessage(
+      remoteJid, 
+      { text: `⚠️ Warning, \n${message.pushName} you aren't allowed to use this word.`}, 
+      { quoted: message },
+      { disappearingMessagesInChat: true }
+    );
     
     return true;
   }
@@ -247,6 +242,9 @@ async function react(emoji, remoteJid, sock, message) {
   await sock.sendMessage(remoteJid, reactionMessage);
 }
 
+// resetConnection();
+connectionLogic();
+
 
 
 // Express server to keep the process alive
@@ -260,6 +258,3 @@ app.listen(3000, () => {
 app.get('/', (req, res) => {
   res.send('Kairo is running!');
 });
-
-// resetConnection();
-connectionLogic();
