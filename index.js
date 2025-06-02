@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const { DisconnectReason, useMultiFileAuthState} = require('baileys');
 const { GoogleGenAI } = require('@google/genai');
 const fs = require('fs');
@@ -6,8 +8,8 @@ const app = express();
 const path = require('path');
 const makeWASocket = require('baileys').default;
 
-// importing api key from GeminiAPI.js
-const apiKey = require('./GeminiAPI').apiKey;
+// importing api key
+const apiKey = process.env.GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey });
 
 async function resetConnection() {
@@ -44,6 +46,8 @@ async function connectionLogic() {
 
       if (shouldReconnect) {
         connectionLogic();
+      } else if (connection == 'open') {
+        console.log('Already connected');
       }
     }
   });
@@ -60,12 +64,22 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   const remoteJid = message.key.remoteJid;
   const pushName = message.pushName;
 
+  // console.log(message);
+
   // Check if the message contains extendedTextMessage
   const text = message.message?.extendedTextMessage?.text || message.message?.conversation;
+  const reactionEmoji = message.message?.reactionMessage?.text || message.message?.reactionMessage?.key?.remoteJid;
 
-  if (!text) {
+  if (!text && !reactionEmoji) {
     console.log('Message type not supported or no text found.');
     return;
+
+  } else if (text) {
+    console.log([remoteJid, pushName, text]);
+
+  } else if (reactionEmoji) {
+    console.log([remoteJid, pushName, reactionEmoji]);
+
   }
   
   const banWords = [
@@ -84,6 +98,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "gand",
     "gand mara",
     "gand marao",
+    "lode",
     "lodu",
     "lund",
     "chut",
@@ -94,10 +109,18 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   // /ask <your message>
   const genAICommand = text.match(/^\/ask\s+(.+)/i);
   if (genAICommand) {
-    const kairoPrompt = `Consider you as Kairo, a helpful AI assistant. Respond to the user's query in a friendly and informative manner. The user will ask you questions or give you commands, and you should respond accordingly. If user asks for help, tell him to use /help command for Kairo's menu. If user 'ask who are you' then reply with the name 'Kairo' and tell him that you are a helpful AI assistant, designed by Kevin. Hence you a personal open source project and the github link is https://www.github.com/Kevindua26/Kairo, don't provide link until user asks. Now the user: ${pushName}, will ask you from next line.`;
+    const kairoPrompt = `Consider you as Kairo, a helpful AI assistant. 
+      Respond to the user's query in a friendly and informative manner. 
+      The user will ask you questions or give you commands, and you should respond accordingly. 
+      If user asks for help, tell him to use /help command for Kairo's menu. 
+      If user 'ask who are you' then reply with the name 'Kairo' and tell him that you are a helpful AI assistant, designed by Kevin. 
+      Hence you a project made by Kevin, the github link is https://www.github.com/Kevindua26/Kairo, don't provide link until user asks. 
+      Now the user: ${pushName}, will ask you from next line.`;
+
     const commandText = genAICommand[1]; // This will contain the text after "Kairo "
 
     try {
+      await react('🤖', remoteJid, sock, message);
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash",
         contents: `"${kairoPrompt}\n\n${commandText}"`,
@@ -108,8 +131,8 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message });
 
     } catch (err) {
-      console.error('Error generating AI response:', err);
-      await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, I couldn't process your request. Please try again later.` }, { quoted: message });
+      console.error('Error generating AI response: ', err);
+      await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, \nServer is busy right now.` }, { quoted: message });
     }
     return;
   }
@@ -140,7 +163,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       await react('🙇🏼‍♂️', remoteJid, sock, message);
       for (let i = 0; i < spamCount; i++) {
         await sock.sendMessage(remoteJid, { text: spamMessage });
-        await sleep(500); // Add 500ms delay after each message
+        await sleep(1000); // Add 1000ms delay after each message
       }
     } else {
       console.log('Invalid spam count.');
@@ -153,7 +176,12 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   // Kairo
   if (text === 'Kairo') {
     // await react('❤️', remoteJid, sock, message);
-    await sock.sendMessage(remoteJid, { text: `Hi 👋🏻, I'm here for you ${pushName}! \n📋 /help to show menu` }, { quoted: message });
+    await sock.sendMessage(
+      remoteJid, 
+      { text: `Hi 👋🏻, I'm here for you ${pushName}! \n📋 /help to show menu` }, 
+      { quoted: message },
+      { disappearingMessagesInChat: true } // Enable disappearing messages in chat
+    );
     return;
   }
   if (/thanks kairo/i.test(text)) {
@@ -169,9 +197,21 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   //   await react('❤️', remoteJid, sock, message);
   // }
 
+  const appreciatingWords = [
+    "thanks kairo",
+    "thank you kairo",
+    "thank you so much kairo",
+    "tysm kairo",
+    "good bot",
+    "good job kairo",
+    "well done kairo",
+    "appreciate you kairo",
+  ];
+  if(await appreciationWordReact(appreciatingWords, text, remoteJid, sock, message)) return;
+
   
 
-  console.log([remoteJid, pushName, text]);
+  // console.log([remoteJid, pushName, text]);
 }
 
 async function banWordsAlert(banWords, text, remoteJid, sock, message) {
@@ -179,8 +219,19 @@ async function banWordsAlert(banWords, text, remoteJid, sock, message) {
   
   if (regex.test(text)) {
     // Reply to the message
-    await react('🖕', remoteJid, sock, message);
-    await sock.sendMessage(remoteJid, { text: `⚠️Warning⚠️ \n${message.pushName}, you aren't allowed to use this word.`}, { quoted: message });
+    await react('🚫', remoteJid, sock, message);
+    await sock.sendMessage(remoteJid, { text: `⚠️ Warning, \n${message.pushName} you aren't allowed to use this word.`}, { quoted: message });
+    
+    return true;
+  }
+}
+
+async function appreciationWordReact(appreciatingWords, text, remoteJid, sock, message) {
+  const regex = new RegExp(`\\b(${appreciatingWords.join('|')})\\b`, 'i');
+  
+  if (regex.test(text)) {
+    // Reply to the message
+    await react('❤️', remoteJid, sock, message);
     
     return true;
   }
@@ -195,6 +246,20 @@ async function react(emoji, remoteJid, sock, message) {
   };
   await sock.sendMessage(remoteJid, reactionMessage);
 }
+
+
+
+// Express server to keep the process alive
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.listen(3000, () => {
+  console.log('\nServer is running on port 3000\nVisit http://localhost:3000 to check if Kairo is running.\n\n');
+});
+
+app.get('/', (req, res) => {
+  res.send('Kairo is running!');
+});
 
 // resetConnection();
 connectionLogic();
