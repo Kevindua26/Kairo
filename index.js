@@ -68,18 +68,30 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
 
   // Check if the message contains extendedTextMessage
   const text = message.message?.extendedTextMessage?.text || message.message?.conversation;
-  const reactionEmoji = message.message?.reactionMessage?.text || message.message?.reactionMessage?.key?.remoteJid;
-
-  if (!text && !reactionEmoji) {
+  const emoji = message.message?.reactionMessage?.text || message.message?.reactionMessage?.key?.remoteJid;
+  const sticker = message.message?.stickerMessage?.mimetype;
+  const image = message.message?.imageMessage?.mimetype;
+  const video = message.message?.videoMessage?.mimetype;
+  const caption = message.message?.imageMessage?.caption || message.message?.videoMessage?.caption;
+  
+  if (!text && !emoji && !image && !video && !sticker) {
     console.log('Message type not supported or no text found.');
     return;
 
   } else if (text) {
     console.log([remoteJid, pushName, text]);
 
-  } else if (reactionEmoji) {
-    console.log([remoteJid, pushName, reactionEmoji]);
+  } else if (emoji) {
+    console.log([remoteJid, pushName, emoji]);
 
+  } else if (sticker) {
+    console.log([remoteJid, pushName, `Sticker`, sticker]);
+
+  } else if (image) {
+    console.log([remoteJid, pushName, `Image`, image, caption]);
+
+  } else if (video) {
+    console.log([remoteJid, pushName, `Video`, video, caption]);
   }
   
   const banWords = [
