@@ -166,7 +166,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   if (text === '/help') {
     await sock.sendMessage(
       remoteJid, 
-      { text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖*/help* - Show this help message\n2. 🤖*/ask <your message>* - Generate a response using AI\n3. 📤*Kairo spam "message" <number>* - Spam a message a specified number of times (up to 20)\n4. 👋*Kairo* - Reply with a greeting\n` },
+      { text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖*/help* - Show this help message\n2. 🤖*/ask <your message>* - Generate a response using AI\n3. 📤*/spam "message" <number>* - Spam a message a specified number of times (up to 20)\n4. 👋*Kairo* - Reply with a greeting\n` },
       { quoted: message },
       { disappearingMessagesInChat: true } // Enable disappearing messages in chat
     );
@@ -174,9 +174,9 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     return;
   }
 
-  // Kairo spam "message" <number>
+  // /spam "message" <number>
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  const spamMatch = text.match(/^Kairo spam "(.+)" (\d+)$/i);
+  const spamMatch = text.match(/^\/spam "(.+)" (\d+)$/i);
   if (spamMatch) {
     const spamMessage = spamMatch[1]; // Extract the message inside quotes
     const spamCount = parseInt(spamMatch[2], 10); // Extract the number of times to spam

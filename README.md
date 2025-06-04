@@ -6,10 +6,10 @@ Kairo is a WebSocket-based WhatsApp Chat bot built using [Baileys](https://githu
 
 ## 🚀 Features
 
-- 🤖 `/ask <message>` - Chat with Gemini AI  
-- 📖 `/help` - Get the list of all available commands  
 - 👋 `Kairo` - Greet the bot and receive a response  
-- 📤 `Kairo spam "message" <number>` - Send a message multiple times (limit: 20)
+- 🤖 `/ask <message>` - Chat with Gemini AI  
+- 📖 `/help` - Get the list of all available commands 
+- 📤 `/spam "message" <number>` - Send a message multiple times (limit: 20)
 
 ---
 
