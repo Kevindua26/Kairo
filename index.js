@@ -70,15 +70,13 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   const text = message.message?.extendedTextMessage?.text || message.message?.conversation;
   const emoji = message.message?.reactionMessage?.text || message.message?.reactionMessage?.key?.remoteJid;
   const sticker = message.message?.stickerMessage?.mimetype;
+  const audio = message.message?.audioMessage?.mimetype;
   const image = message.message?.imageMessage?.mimetype;
   const video = message.message?.videoMessage?.mimetype;
   const caption = message.message?.imageMessage?.caption || message.message?.videoMessage?.caption;
+  const document = message.message?.documentMessage?.mimetype;
   
-  if (!text && !emoji && !image && !video && !sticker) {
-    console.log('Message type not supported or no text found.');
-    return;
-
-  } else if (text) {
+  if (text) {
     console.log([remoteJid, pushName, text]);
 
   } else if (emoji) {
@@ -86,12 +84,27 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
 
   } else if (sticker) {
     console.log([remoteJid, pushName, `Sticker`, sticker]);
+    return;
+
+  } else if (audio) {
+    console.log([remoteJid, pushName, `Audio`, audio]);
+    return;
 
   } else if (image) {
     console.log([remoteJid, pushName, `Image`, image, caption]);
+    return;
 
   } else if (video) {
     console.log([remoteJid, pushName, `Video`, video, caption]);
+    return;
+
+  } else if (document) {
+    console.log([remoteJid, pushName, `Document`, document]);
+    return;
+
+  } else {
+    console.log([remoteJid, pushName, `Unknown message type`]);
+    return;
   }
   
   const banWords = [
@@ -116,7 +129,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "chut",
     "randi"
   ]
-  if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
+  // if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
   // /ask <your message>
   const genAICommand = text.match(/^\/ask\s+(.+)/i);
@@ -144,7 +157,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
 
     } catch (err) {
       console.error('Error generating AI response: ', err);
-      await sock.sendMessage(remoteJid, { text: `Sorry ${pushName}, \nServer is busy right now.` }, { quoted: message }, { disappearingMessagesInChat: true });
+      await sock.sendMessage(remoteJid, { text: `Server Overloaded!, try again later` }, { quoted: message }, { disappearingMessagesInChat: true });
     }
     return;
   }
@@ -204,6 +217,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
 
   const appreciatingWords = [
     "thanks kairo",
+    "thanku kairo",
     "thank you kairo",
     "thank you so much kairo",
     "tysm kairo",
@@ -211,6 +225,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "good job kairo",
     "well done kairo",
     "appreciate you kairo",
+    "appreciate it kairo",
   ];
   if(await appreciationWordReact(appreciatingWords, text, remoteJid, sock, message)) return;
 
