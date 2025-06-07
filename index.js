@@ -64,9 +64,10 @@ async function connectionLogic() {
 async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   const message = meesageInfoUpsert.messages[0];
   const remoteJid = message.key.remoteJid;
+  const participant = message.key.participant;
   const pushName = message.pushName;
 
-  // console.log(message);
+  // console.log([message, remoteJid, pushName]);
 
   // Check if the message contains extendedTextMessage
   const text = message.message?.extendedTextMessage?.text || message.message?.conversation;
@@ -79,33 +80,33 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   const document = message.message?.documentMessage?.mimetype;
   
   if (text) {
-    console.log([remoteJid, pushName, text]);
+    console.log([participant, pushName, text]);
 
   } else if (emoji) {
-    console.log([remoteJid, pushName, emoji]);
+    console.log([participant, pushName, emoji]);
 
   } else if (sticker) {
-    console.log([remoteJid, pushName, `Sticker`, sticker]);
+    console.log([participant, pushName, `Sticker`, sticker]);
     return;
 
   } else if (audio) {
-    console.log([remoteJid, pushName, `Audio`, audio]);
+    console.log([participant, pushName, `Audio`, audio]);
     return;
 
   } else if (image) {
-    console.log([remoteJid, pushName, `Image`, image, caption]);
+    console.log([participant, pushName, `Image`, image, caption]);
     return;
 
   } else if (video) {
-    console.log([remoteJid, pushName, `Video`, video, caption]);
+    console.log([participant, pushName, `Video`, video, caption]);
     return;
 
   } else if (document) {
-    console.log([remoteJid, pushName, `Document`, document]);
+    console.log([participant, pushName, `Document`, document]);
     return;
 
   } else {
-    console.log([remoteJid, pushName, `Unknown message type`]);
+    console.log([participant, pushName, `Unknown message type`]);
     return;
   }
   
