@@ -8,6 +8,7 @@ Kairo is a WebSocket-based WhatsApp Chat bot built using [Baileys](https://githu
 
 - 👋 `Kairo` - Greet the bot and receive a response  
 - 🤖 `/ask <message>` - Chat with Gemini AI  
+- 🏷️ `/tag` - Mention all group members (only works in groups)
 - 📖 `/help` - Get the list of all available commands 
 - 📤 `/spam "message" <number>` - Send a message multiple times (limit: 20)
 

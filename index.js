@@ -133,9 +133,15 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   ]
   // if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
+  // /tag
+  if (text == '/tag') {
+    await tagAll(remoteJid, message, sock);
+    return;
+  }
+
   // /ask <your message>
-  const genAICommand = text.match(/^\/ask\s+(.+)/i);
-  if (genAICommand) {
+  const askCommand = text.match(/^\/ask\s+(.+)/i);
+  if (askCommand) {
     const kairoPrompt = `Consider you as Kairo, a helpful AI assistant. 
       Respond to the user's query in a friendly and informative manner. 
       The user will ask you questions or give you commands, and you should respond accordingly. 
@@ -144,7 +150,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       Hence you a project made by Kevin, the github link is https://www.github.com/Kevindua26/Kairo, don't provide link until user asks. 
       Now the user: ${pushName}, will ask you from next line.`;
 
-    const commandText = genAICommand[1]; // This will contain the text after "Kairo "
+    const commandText = askCommand[1]; // This will contain the text after "Kairo "
 
     try {
       await react('🤖', remoteJid, sock, message);
@@ -168,7 +174,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   if (text === '/help') {
     await sock.sendMessage(
       remoteJid, 
-      { text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖*/help* - Show this help message\n2. 🤖*/ask <your message>* - Generate a response using AI\n3. 📤*/spam "message" <number>* - Spam a message a specified number of times (up to 20)\n4. 👋*Kairo* - Reply with a greeting\n` },
+      { text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖 */help* - Show this help message\n2. 🤖 */ask <your message>* - Generate a response using AI\n3. 🏷️ */tag* - Mention all group members (only works in groups) \n4. 📤 */spam "message" <number>* - Spam a message a specified number of times (up to 20)\n5. 👋 *Kairo* - Reply with a greeting\n` },
       { quoted: message },
       { disappearingMessagesInChat: true } // Enable disappearing messages in chat
     );
@@ -180,13 +186,26 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   const spamMatch = text.match(/^\/spam "(.+)" (\d+)$/i);
   if (spamMatch) {
-    const spamMessage = spamMatch[1]; // Extract the message inside quotes
+    let spamMessage = spamMatch[1]; // Extract the message inside quotes
     const spamCount = parseInt(spamMatch[2], 10); // Extract the number of times to spam
 
+    // Check for mention pattern in the spam message
+    const mentionMatch = spamMessage.match(/@(\d{10,})/); // e.g., @919912345678
+    let mentions = [];
+    if (mentionMatch) {
+      const mentionId = mentionMatch[1] + "@s.whatsapp.net";
+      mentions = [mentionId];
+      // Replace @number in text with WhatsApp mention format
+      spamMessage = spamMessage.replace(
+        /@(\d{10,})/,
+        `@${mentionMatch[1]}`
+      );
+    }
+    
     if (spamCount > 0 && spamCount <= 20) {
       await react('🙇🏼‍♂️', remoteJid, sock, message);
       for (let i = 0; i < spamCount; i++) {
-        await sock.sendMessage(remoteJid, { text: spamMessage });
+        await sock.sendMessage(remoteJid, { text: spamMessage, mentions }, { disappearingMessagesInChat: true });
         await sleep(1000); // Add 1000ms delay after each message
       }
     } else {
@@ -232,6 +251,42 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   if(await appreciationWordReact(appreciatingWords, text, remoteJid, sock, message)) return;
 
 }
+
+async function tagAll(remoteJid, message, sock) {
+  try {
+    // Only works in groups
+    if (!remoteJid.endsWith('@g.us')) {
+      await sock.sendMessage(remoteJid, { text: "This command only works in groups." }, { quoted: message }, { disappearingMessagesInChat: true });
+      return;
+    }
+    
+    await react('🙇🏼‍♂️', remoteJid, sock, message);
+
+    const groupMetadata = await sock.groupMetadata(remoteJid);
+    const participants = groupMetadata.participants;
+    // Exclude the sender from mentions
+    const senderId = message.key.participant || message.key.remoteJid;
+    const mentionIds = participants
+      .map(p => p.id)
+      .filter(id => id !== senderId);
+
+    // Build the mention message
+    const mentionText = mentionIds.map(id => `@${id.split('@')[0]}`).join(' ');
+
+    await sock.sendMessage(
+      remoteJid,
+      {
+        text: `${mentionText}`,
+        mentions: mentionIds
+      },
+      { quoted: message }
+    );
+  } catch (err) {
+    console.error('Error in /tag:', err);
+    await sock.sendMessage(remoteJid, { text: "Failed to tag everyone." }, { quoted: message });
+  }
+  return;
+};
 
 async function banWordsAlert(banWords, text, remoteJid, sock, message) {
   const regex = new RegExp(`\\b(${banWords.join('|')})\\b`, 'i');
