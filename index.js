@@ -198,7 +198,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   }
 
   // Kairo
-  if (text === 'Kairo') {
+  if (text === 'Kairo' || text === 'kairo' || text === 'KAIRO') {
     // await react('❤️', remoteJid, sock, message);
     await sock.sendMessage(
       remoteJid, 
