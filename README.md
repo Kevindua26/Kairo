@@ -55,7 +55,9 @@ node index.js
 ## ⚠️ DISCLAIMER
 This bot is for educational and personal use only. Spamming should be done responsibly and only in private/test groups. Misuse can lead to WhatsApp bans. Always respect the WhatsApp [Terms of Service](https://www.whatsapp.com/legal/terms-of-service).
 
+---
+
 ## 🧑‍💻 Author
-Made with 💙 by [Kevin](https://linktr.ee/kevindua26?utm_source=linktree_profile_share&ltsid=a223b61f-5c64-4827-b465-e388f3e07dea)
+Made with 💙 by **Kaivalaya Dua** as known as **Kevin** :)
 
 Contact me - [Linktree](https://linktr.ee/kevindua26?utm_source=linktree_profile_share&ltsid=a223b61f-5c64-4827-b465-e388f3e07dea)
