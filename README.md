@@ -42,6 +42,7 @@ npm i
 Create a `.env` file:
 ```env
 GEMINI_API_KEY=your_google_gemini_api_key
+PORT=your_port_number
 ```
 
 4. **Run the BOT:**

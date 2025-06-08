@@ -12,7 +12,7 @@ const makeWASocket = require('baileys').default;
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey });
 
-const port = 3000;
+const PORT = process.env.PORT;
 
 async function resetConnection() {
   const authPath = path.join(__dirname, 'auth_info_baileys');
@@ -336,8 +336,8 @@ async function react(emoji, remoteJid, sock, message) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.listen(port, () => {
-  console.log(`\nServer is running on port ${port}\nVisit http://localhost:${port} to check if Kairo is running.\n\n`);
+app.listen(PORT, () => {
+  console.log(`\nServer is running on port ${PORT}\nVisit http://localhost:${PORT} to check if Kairo is running.\n\n`);
 
   connectionLogic();
 });
