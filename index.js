@@ -207,11 +207,11 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       await react('🙇🏼‍♂️', remoteJid, sock, message);
       for (let i = 0; i < spamCount; i++) {
         await sock.sendMessage(remoteJid, { text: spamMessage, mentions }, { disappearingMessagesInChat: true });
-        await sleep(1000); // Add 1000ms delay after each message
+        await sleep(1500); // Add 1.5s delay after each message
       }
     } else {
       console.log('Invalid spam count.');
-      await sock.sendMessage(remoteJid, { text: `Sorry, I cann't spam it more than 20 😔` }, { quoted: message });
+      await sock.sendMessage(remoteJid, { text: `Sorry, I cann't spam it more than 20 😔` }, { quoted: message }, { disappearingMessagesInChat: true });
     }
 
     return;
@@ -337,7 +337,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.listen(PORT, () => {
-  console.log(`\nServer is running on port ${PORT}\nVisit http://localhost:${PORT} to check if Kairo is running.\n\n`);
+  console.log(`\nServer is running on port ${PORT}\nVisit http://localhost:${PORT} to check if Kairo is running.\n`);
 
   connectionLogic();
 });
