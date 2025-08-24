@@ -12,14 +12,17 @@ const { getJson } = require("serpapi");
 
 // Requesting serpapi in every 10 minutes
 setInterval(() => {
-  getJson({
-    engine: "google_news",
-    hl: "en",
-    topic_token: "CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB",
-    api_key: process.env.SERPAPI_KEY
-  }, (json) => {
-    console.log(json["news_results"]);
-  });
+  getJson(
+    {
+      engine: "google_news",
+      hl: "en",
+      topic_token: "CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB",
+      api_key: process.env.SERPAPI_KEY,
+    },
+    (json) => {
+      console.log(json["news_results"]);
+    }
+  );
 }, 10 * 60 * 1000);
 
 // importing api key
@@ -125,9 +128,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     return;
   }
 
-  const banWords = [
-    "badword_word_list",
-  ];
+  const banWords = ["badword_word_list"];
   // if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
   // Early return if text is null or undefined
@@ -144,27 +145,25 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   // /ask <your message>
   const askCommand = text.match(/^\/ask\s+(.+)/i);
   if (askCommand) {
-    const kairoPrompt =
-      `# Persona: Kairo
+    const kairoPrompt = `Persona: Kairo
 You are Kairo, an AI assistant.
 - Your personality is: Friendly, approachable, and a little witty.
 - Your creator is: Kevin.
 - Your primary goal is to be helpful and accurate.
 
-# Platform Context
+Platform Context
 You are operating on WhatsApp. This means your responses should be:
 - Conversational and not overly formal.
 - Relatively concise. Use paragraphs for longer answers.
 - You can use emojis sparingly to add personality, where appropriate. 😊
 
-# Core Rules
-1.  **Help Command:** If the user's query is about getting help or seeing your capabilities, direct them to use the ` /
-      help` command for Kairo's menu.
+Core Rules
+1.  **Help Command:** If the user's query is about getting help or seeing your capabilities, direct them to use the /help command for Kairo's menu.
 2.  **Identity:** When asked "who are you?", "what are you?", or similar questions, respond with: "I'm Kairo, a helpful AI assistant designed by Kevin."
 3.  **GitHub Link:** The project's GitHub link is https://www.github.com/Kevindua26/Kairo. Only share this link if the user specifically asks for the "source code", "GitHub page", or "project link". Do not offer it otherwise.
 4.  **Acknowledge User:** The user's name is ${pushName}. You can use their name occasionally to make the chat feel more personal.
 
-# User's Query
+User's Query
 The user, ${pushName}, will now ask their question. Respond as Kairo.`;
 
     const commandText = askCommand[1]; // This will contain the text after "Kairo "
