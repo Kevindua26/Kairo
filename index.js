@@ -113,26 +113,7 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   }
 
   const banWords = [
-    "Fuck",
-    "motherfucker",
-    "bc",
-    "behenchod",
-    "bhenchod",
-    "behnchod",
-    "chutiya",
-    "chutiye",
-    "bsdk",
-    "bhosdike",
-    "madarchod",
-    "gandu",
-    "gand",
-    "gand mara",
-    "gand marao",
-    "lode",
-    "lodu",
-    "lund",
-    "chut",
-    "randi",
+    "badword_word_list",
   ];
   // if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
