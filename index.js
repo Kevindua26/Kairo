@@ -8,6 +8,19 @@ const app = express();
 const path = require("path");
 const makeWASocket = require("baileys").default;
 const qrcode = require("qrcode-terminal");
+const { getJson } = require("serpapi");
+
+// Requesting serpapi in every 10 minutes
+setInterval(() => {
+  getJson({
+    engine: "google_news",
+    hl: "en",
+    topic_token: "CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB",
+    api_key: process.env.SERPAPI_KEY
+  }, (json) => {
+    console.log(json["news_results"]);
+  });
+}, 10 * 60 * 1000);
 
 // importing api key
 const apiKey = process.env.GEMINI_API_KEY;
