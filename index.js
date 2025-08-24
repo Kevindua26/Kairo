@@ -1,12 +1,13 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const { DisconnectReason, useMultiFileAuthState} = require('baileys');
-const { GoogleGenAI } = require('@google/genai');
-const fs = require('fs');
-const express = require('express');
+const { DisconnectReason, useMultiFileAuthState } = require("baileys");
+const { GoogleGenAI } = require("@google/genai");
+const fs = require("fs");
+const express = require("express");
 const app = express();
-const path = require('path');
-const makeWASocket = require('baileys').default;
+const path = require("path");
+const makeWASocket = require("baileys").default;
+const qrcode = require("qrcode-terminal");
 
 // importing api key
 const apiKey = process.env.GEMINI_API_KEY;
@@ -15,12 +16,12 @@ const ai = new GoogleGenAI({ apiKey: apiKey });
 const PORT = process.env.PORT;
 
 async function resetConnection() {
-  const authPath = path.join(__dirname, 'auth_info_baileys');
-  
+  const authPath = path.join(__dirname, "auth_info_baileys");
+
   // Delete the auth directory
   if (fs.existsSync(authPath)) {
     fs.rmSync(authPath, { recursive: true, force: true });
-    console.log('Authentication state reset. Restarting connection...');
+    console.log("Authentication state reset. Restarting connection...");
   }
 
   // Restart the connection logic
@@ -31,85 +32,86 @@ async function connectionLogic() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
   const sock = makeWASocket({
     // can provide additional config here
-    printQRInTerminal: true,
     auth: state,
   });
 
-  sock.ev.on('connection.update', async (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update || {};
 
     if (qr) {
-      console.log(qr);
-      //write custom logic here
+      console.log("\nQR Code for WhatsApp Web:");
+      qrcode.generate(qr, { small: true });
     }
 
-    if (connection === 'close') {
-      const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
+    if (connection === "close") {
+      const shouldReconnect =
+        lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
 
       if (shouldReconnect) {
         connectionLogic();
-      } else if (connection == 'open') {
-        console.log('Already connected');
+      } else if (connection == "open") {
+        console.log("Already connected");
       }
     }
   });
 
-  sock.ev.on('messages.upsert', (messageInfoUpsert) => {
+  sock.ev.on("messages.upsert", (messageInfoUpsert) => {
     resolvingMessageUpsert(messageInfoUpsert, sock);
   });
 
-  sock.ev.on('creds.update', saveCreds);
+  sock.ev.on("creds.update", saveCreds);
 }
 
 async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
   const message = meesageInfoUpsert.messages[0];
   const remoteJid = message.key.remoteJid;
-  const participant = message.key.participant;
+  let participant = message.key.participant;
+  if (participant == undefined) {
+    participant = remoteJid;
+  }
   const pushName = message.pushName;
 
   // console.log([message, remoteJid, pushName]);
 
   // Check if the message contains extendedTextMessage
-  const text = message.message?.extendedTextMessage?.text || message.message?.conversation;
-  const emoji = message.message?.reactionMessage?.text || message.message?.reactionMessage?.key?.remoteJid;
+  const text =
+    message.message?.extendedTextMessage?.text || message.message?.conversation;
+  const emoji =
+    message.message?.reactionMessage?.text ||
+    message.message?.reactionMessage?.key?.remoteJid;
   const sticker = message.message?.stickerMessage?.mimetype;
   const audio = message.message?.audioMessage?.mimetype;
   const image = message.message?.imageMessage?.mimetype;
   const video = message.message?.videoMessage?.mimetype;
-  const caption = message.message?.imageMessage?.caption || message.message?.videoMessage?.caption;
+  const caption =
+    message.message?.imageMessage?.caption ||
+    message.message?.videoMessage?.caption;
   const document = message.message?.documentMessage?.mimetype;
-  
+
   if (text) {
     console.log([participant, pushName, text]);
-
   } else if (emoji) {
     console.log([participant, pushName, emoji]);
-
   } else if (sticker) {
     console.log([participant, pushName, `Sticker`, sticker]);
     return;
-
   } else if (audio) {
     console.log([participant, pushName, `Audio`, audio]);
     return;
-
   } else if (image) {
     console.log([participant, pushName, `Image`, image, caption]);
     return;
-
   } else if (video) {
     console.log([participant, pushName, `Video`, video, caption]);
     return;
-
   } else if (document) {
     console.log([participant, pushName, `Document`, document]);
     return;
-
   } else {
     console.log([participant, pushName, `Unknown message type`]);
     return;
   }
-  
+
   const banWords = [
     "Fuck",
     "motherfucker",
@@ -130,12 +132,17 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "lodu",
     "lund",
     "chut",
-    "randi"
-  ]
+    "randi",
+  ];
   // if(await banWordsAlert(banWords, text, remoteJid, sock, message)) return;
 
+  // Early return if text is null or undefined
+  if (!text) {
+    return;
+  }
+
   // /tag
-  if (text == '/tag') {
+  if (text.includes("/tag")) {
     await tagAll(remoteJid, message, sock);
     return;
   }
@@ -154,37 +161,49 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     const commandText = askCommand[1]; // This will contain the text after "Kairo "
 
     try {
-      await react('🤖', remoteJid, sock, message);
+      await react("🤖", remoteJid, sock, message);
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash",
         contents: `"${kairoPrompt}\n\n${commandText}"`,
       });
       let replyText = response.text;
       console.log(`AI Response: ${replyText}`);
-    
-      await sock.sendMessage(remoteJid, { text: `${replyText}`}, { quoted: message }, { disappearingMessagesInChat: true });
 
+      await sock.sendMessage(
+        remoteJid,
+        { text: `${replyText}` },
+        { quoted: message },
+        { disappearingMessagesInChat: true }
+      );
     } catch (err) {
-      console.error('Error generating AI response: ', err);
-      await sock.sendMessage(remoteJid, { text: `Server Overloaded!, try again later` }, { quoted: message }, { disappearingMessagesInChat: true });
+      console.error("Error generating AI response: ", err);
+      await sock.sendMessage(
+        remoteJid,
+        { text: `Server Overloaded!, try again later` },
+        { quoted: message },
+        { disappearingMessagesInChat: true }
+      );
     }
     return;
   }
 
   // /help
-  if (text === '/help') {
+  if (text === "/help") {
     await sock.sendMessage(
-      remoteJid, 
-      { text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖 */help* - Show this help message\n2. 🤖 */ask <your message>* - Generate a response using AI\n3. 🏷️ */tag* - Mention all group members (only works in groups) \n4. 📤 */spam "message" <number>* - Spam a message a specified number of times (up to 20)\n5. 👋 *Kairo* - Reply with a greeting\n` },
+      remoteJid,
+      {
+        text: `Hello ${pushName}, I'm Kairo! 🤖\nHere are the commands you can use:\n\n1. 📖 */help* - Show this help message\n2. 🤖 */ask <your message>* - Generate a response using AI\n3. 🏷️ */tag* - Mention all group members (only works in groups) \n4. 📤 */spam "message" <number>* - Spam a message a specified number of times (up to 20)\n5. 👋 *Kairo* - Reply with a greeting\n`,
+      },
       { quoted: message },
       { disappearingMessagesInChat: true } // Enable disappearing messages in chat
     );
 
     return;
   }
+  
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // /spam "message" <number>
-  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   const spamMatch = text.match(/^\/spam "(.+)" (\d+)$/i);
   if (spamMatch) {
     let spamMessage = spamMatch[1]; // Extract the message inside quotes
@@ -197,32 +216,38 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
       const mentionId = mentionMatch[1] + "@s.whatsapp.net";
       mentions = [mentionId];
       // Replace @number in text with WhatsApp mention format
-      spamMessage = spamMessage.replace(
-        /@(\d{10,})/,
-        `@${mentionMatch[1]}`
-      );
+      spamMessage = spamMessage.replace(/@(\d{10,})/, `@${mentionMatch[1]}`);
     }
-    
+
     if (spamCount > 0 && spamCount <= 20) {
-      await react('🙇🏼‍♂️', remoteJid, sock, message);
+      await react("🙇🏼‍♂️", remoteJid, sock, message);
       for (let i = 0; i < spamCount; i++) {
-        await sock.sendMessage(remoteJid, { text: spamMessage, mentions }, { disappearingMessagesInChat: true });
+        await sock.sendMessage(
+          remoteJid,
+          { text: spamMessage, mentions },
+          { disappearingMessagesInChat: true }
+        );
         await sleep(1500); // Add 1.5s delay after each message
       }
     } else {
-      console.log('Invalid spam count.');
-      await sock.sendMessage(remoteJid, { text: `Sorry, I cann't spam it more than 20 😔` }, { quoted: message }, { disappearingMessagesInChat: true });
+      console.log("Invalid spam count.");
+      await sock.sendMessage(
+        remoteJid,
+        { text: `Sorry, I cann't spam it more than 20 😔` },
+        { quoted: message },
+        { disappearingMessagesInChat: true }
+      );
     }
 
     return;
   }
 
   // Kairo
-  if (text === 'Kairo' || text === 'kairo' || text === 'KAIRO') {
+  if (text === "Kairo" || text === "kairo" || text === "KAIRO") {
     // await react('❤️', remoteJid, sock, message);
     await sock.sendMessage(
-      remoteJid, 
-      { text: `Hi 👋🏻, I'm here for you ${pushName}! \n📋 /help to show menu` }, 
+      remoteJid,
+      { text: `Hi 👋🏻, I'm here for you ${pushName}! \n📋 /help to show menu` },
       { quoted: message },
       { disappearingMessagesInChat: true } // Enable disappearing messages in chat
     );
@@ -249,70 +274,97 @@ async function resolvingMessageUpsert(meesageInfoUpsert, sock) {
     "appreciate you kairo",
     "appreciate it kairo",
   ];
-  if(await appreciationWordReact(appreciatingWords, text, remoteJid, sock, message)) return;
-
+  if (
+    await appreciationWordReact(
+      appreciatingWords,
+      text,
+      remoteJid,
+      sock,
+      message
+    )
+  )
+    return;
 }
 
 async function tagAll(remoteJid, message, sock) {
   try {
     // Only works in groups
-    if (!remoteJid.endsWith('@g.us')) {
-      await sock.sendMessage(remoteJid, { text: "This command only works in groups." }, { quoted: message }, { disappearingMessagesInChat: true });
+    if (!remoteJid.endsWith("@g.us")) {
+      await sock.sendMessage(
+        remoteJid,
+        { text: "This command only works in groups." },
+        { quoted: message },
+        { disappearingMessagesInChat: true }
+      );
       return;
     }
-    
-    await react('🙇🏼‍♂️', remoteJid, sock, message);
+
+    await react("🙇🏼‍♂️", remoteJid, sock, message);
 
     const groupMetadata = await sock.groupMetadata(remoteJid);
     const participants = groupMetadata.participants;
     // Exclude the sender from mentions
     const senderId = message.key.participant || message.key.remoteJid;
     const mentionIds = participants
-      .map(p => p.id)
-      .filter(id => id !== senderId);
+      .map((p) => p.id)
+      .filter((id) => id !== senderId);
 
     // Build the mention message
-    const mentionText = mentionIds.map(id => `@${id.split('@')[0]}`).join(' ');
+    const mentionText = mentionIds
+      .map((id) => `@${id.split("@")[0]}`)
+      .join(" ");
 
     await sock.sendMessage(
       remoteJid,
       {
         text: `${mentionText}`,
-        mentions: mentionIds
+        mentions: mentionIds,
       },
       { quoted: message }
     );
   } catch (err) {
-    console.error('Error in /tag:', err);
-    await sock.sendMessage(remoteJid, { text: "Failed to tag everyone." }, { quoted: message });
+    console.error("Error in /tag:", err);
+    await sock.sendMessage(
+      remoteJid,
+      { text: "Failed to tag everyone." },
+      { quoted: message }
+    );
   }
   return;
-};
+}
 
 async function banWordsAlert(banWords, text, remoteJid, sock, message) {
-  const regex = new RegExp(`\\b(${banWords.join('|')})\\b`, 'i');
-  
+  const regex = new RegExp(`\\b(${banWords.join("|")})\\b`, "i");
+
   if (regex.test(text)) {
     // Reply to the message
-    await react('🚫', remoteJid, sock, message);
+    await react("🚫", remoteJid, sock, message);
     await sock.sendMessage(
-      remoteJid, 
-      { text: `⚠️ Warning, \n${message.pushName} you aren't allowed to use this word.`}, 
+      remoteJid,
+      {
+        text: `⚠️ Warning, \n${message.pushName} you aren't allowed to use this word.`,
+      },
       { quoted: message },
       { disappearingMessagesInChat: true }
     );
-    
+
     return true;
   }
 }
 
-async function appreciationWordReact(appreciatingWords, text, remoteJid, sock, message) {
-  const regex = new RegExp(`\\b(${appreciatingWords.join('|')})\\b`, 'i');
-  
+async function appreciationWordReact(
+  appreciatingWords,
+  text,
+  remoteJid,
+  sock,
+  message
+) {
+  const regex = new RegExp(`\\b(${appreciatingWords.join("|")})\\b`, "i");
+
   if (regex.test(text)) {
     // Reply to the message
-    await react('❤️', remoteJid, sock, message);
-    
+    await react("❤️", remoteJid, sock, message);
+
     return true;
   }
 }
@@ -330,18 +382,18 @@ async function react(emoji, remoteJid, sock, message) {
 // resetConnection();
 // connectionLogic();
 
-
-
 // Express server to keep the process alive
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.listen(PORT, () => {
-  console.log(`\nServer is running on port ${PORT}\nVisit http://localhost:${PORT} to check if Kairo is running.\n`);
+  console.log(
+    `\nServer is running on port ${PORT}\nVisit http://localhost:${PORT} to check if Kairo is running.\n`
+  );
 
   connectionLogic();
 });
 
-app.get('/', (req, res) => {
-  res.send('Kairo is running!');
+app.get("/", (req, res) => {
+  res.send("Kairo is running!");
 });
